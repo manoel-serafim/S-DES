@@ -175,19 +175,18 @@ int * p4(int key[4]) {
 }
 
 int * encrypt( int plaintext[8], int K1[8], int K2[8] ){
+  //IP
   int* i_perm =ip(plaintext);
-  
+
+  //Fk1
   int* ext_perm = ep(i_perm+4);
   int* xored_k1 = xor(K1,ext_perm, 8);
-
   int* s_boxed = sub_boxes(xored_k1);
   int* permutated_4 = p4(s_boxed);
-  
   int* xored = xor(permutated_4,i_perm, 4);
 
+  //SWAP
   int* perm_r = i_perm+4;
-
-  //swap 
   int* swap = malloc(8 * sizeof(int));
   for (int i = 0; i < 4; i++) {
     swap[i] = perm_r[i];
@@ -196,15 +195,16 @@ int * encrypt( int plaintext[8], int K1[8], int K2[8] ){
     swap[i + 4] = xored[i];
   }
 
+  //Fk2
   ext_perm = ep(swap+4);
   int* xored_k2 = xor(K2,ext_perm, 8);
-
   s_boxed = sub_boxes(xored_k2);
   permutated_4 = p4(s_boxed);
-
   xored = xor(permutated_4,swap, 4);
   int* swap_r = swap+4;
   int *output = malloc(8 * sizeof(int));
+
+  //unite
   for (int i = 0; i < 4; i++) {
     output[i] = xored[i];
   }
@@ -212,42 +212,49 @@ int * encrypt( int plaintext[8], int K1[8], int K2[8] ){
     output[i + 4] = swap_r[i];
   }
 
+  //IP^-1
   output = inverse_ip(output);
-
   return output;
 
 }
 
 
-void main() {
+
+
+int main() {
   /*start*/
   int L;
   scanf("%d", &L);
-  setbuf(stdin, NULL);
-
+  getchar();
 
   for (int i = 0; i < L; i++) {
+    int operation = getchar();
+
+    // Consume the newline character after reading the operation
+    getchar();
+
     // Lê a chave
     char *key_str = NULL;
     size_t size = 0;
     int key[10];
-    
+
+    // Read the key from the pipe
     getline(&key_str, &size, stdin);
 
     // Convert the string to an integer array.
     for (int i = 0; i < 10; i++) {
       key[i] = key_str[i] - '0';
     }
-    /*GEN_KEYS*/
-    int ** sub_keys = keygen(key);
-  
+
+    // Generate the subkeys.
+    int **sub_keys = keygen(key);
 
     // Lê a mensagem de texto simples
-    
     char *block_str = NULL;
     size_t size_block = 0;
     int block[8];
-    
+
+    // Read the block from the pipe
     getline(&block_str, &size_block, stdin);
 
     // Convert the string to an integer array.
@@ -255,10 +262,34 @@ void main() {
       block[i] = block_str[i] - '0';
     }
 
-    int* encripted = encrypt(block, sub_keys[0], sub_keys[1]);
-    for(int i = 0; i<8; i++){
-      printf("%d", encripted[i]);
+    // Encrypt or decrypt the block.
+    if (operation == 'C') {
+      int *encrypted = encrypt(block, sub_keys[0], sub_keys[1]);
+      for (int i = 0; i < 8; i++) {
+        printf("%d", encrypted[i]);
+      }
+    } else if (operation == 'D') {
+      int *decrypted = encrypt(block, sub_keys[1], sub_keys[0]);
+      for (int i = 0; i < 8; i++) {
+        printf("%d", decrypted[i]);
+      }
+    } else {
+      printf("Invalid operation: %c\n", operation);
     }
+
+    if(i < L-1){
+      printf("\n");
+    }
+    
+
+    // Free the allocated memory.
+    free(key_str);
+    free(block_str);
+    free(sub_keys);
+
+    fflush(stdin);
+    fflush(stdout);
   }
 
+  return 0;
 }
