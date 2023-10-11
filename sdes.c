@@ -73,13 +73,11 @@ int* ip(int plain_text[8]) {
 }
 
 int* inverse_ip(int permuted_text[8]) {
-  // Allocate memory for the output array.
+
   int* output = malloc(sizeof(int) * 8);
 
-  // Create an array to store the inverse permutation.
   int inverse_permutation[] = {4, 1, 3, 5, 7, 2, 8, 6};
 
-  // Perform the inverse permutation.
   for (int i = 0; i < 8; i++) {
     output[i] = permuted_text[inverse_permutation[i] - 1];
   }
@@ -183,7 +181,14 @@ int * encrypt( int plaintext[8], int K1[8], int K2[8] ){
   int* xored_k1 = xor(K1,ext_perm, 8);
   int* s_boxed = sub_boxes(xored_k1);
   int* permutated_4 = p4(s_boxed);
+
+  //XOR
   int* xored = xor(permutated_4,i_perm, 4);
+
+  //free Fk1
+  free(ext_perm);
+  free(xored_k1);
+  free(permutated_4);
 
   //SWAP
   int* perm_r = i_perm+4;
@@ -195,6 +200,8 @@ int * encrypt( int plaintext[8], int K1[8], int K2[8] ){
     swap[i + 4] = xored[i];
   }
 
+  free(xored);
+
   //Fk2
   ext_perm = ep(swap+4);
   int* xored_k2 = xor(K2,ext_perm, 8);
@@ -204,6 +211,11 @@ int * encrypt( int plaintext[8], int K1[8], int K2[8] ){
   int* swap_r = swap+4;
   int *output = malloc(8 * sizeof(int));
 
+  free(ext_perm);
+  free(xored_k2);
+  free(s_boxed);
+  free(permutated_4);
+
   //unite
   for (int i = 0; i < 4; i++) {
     output[i] = xored[i];
@@ -211,6 +223,9 @@ int * encrypt( int plaintext[8], int K1[8], int K2[8] ){
   for (int i = 0; i < 4; i++) {
     output[i + 4] = swap_r[i];
   }
+
+  free(swap);
+  free(i_perm);
 
   //IP^-1
   output = inverse_ip(output);
@@ -224,42 +239,26 @@ int * encrypt( int plaintext[8], int K1[8], int K2[8] ){
 int main() {
   /*start*/
   int L;
-  scanf("%d", &L);
-  getchar();
+  scanf("%d\n", &L);
 
   for (int i = 0; i < L; i++) {
-    int operation = getchar();
-
-    // Consume the newline character after reading the operation
-    getchar();
+    char operation;
+    scanf(" %c", &operation); // Read the operation character
 
     // Lê a chave
-    char *key_str = NULL;
-    size_t size = 0;
     int key[10];
 
     // Read the key from the pipe
-    getline(&key_str, &size, stdin);
-
-    // Convert the string to an integer array.
-    for (int i = 0; i < 10; i++) {
-      key[i] = key_str[i] - '0';
+    for (int j = 0; j < 10; j++) {
+        scanf("%1d", &key[j]); // Read one digit at a time for the key
     }
 
     // Generate the subkeys.
     int **sub_keys = keygen(key);
 
-    // Lê a mensagem de texto simples
-    char *block_str = NULL;
-    size_t size_block = 0;
-    int block[8];
-
-    // Read the block from the pipe
-    getline(&block_str, &size_block, stdin);
-
-    // Convert the string to an integer array.
-    for (int i = 0; i < 8; i++) {
-      block[i] = block_str[i] - '0';
+    int block[10];
+    for (int j = 0; j < 8; j++) {
+        scanf("%1d", &block[j]); // Read one digit at a time for the block
     }
 
     // Encrypt or decrypt the block.
@@ -268,27 +267,21 @@ int main() {
       for (int i = 0; i < 8; i++) {
         printf("%d", encrypted[i]);
       }
+      free(encrypted);
     } else if (operation == 'D') {
       int *decrypted = encrypt(block, sub_keys[1], sub_keys[0]);
       for (int i = 0; i < 8; i++) {
         printf("%d", decrypted[i]);
       }
+      free(decrypted);
     } else {
       printf("Invalid operation: %c\n", operation);
     }
 
-    if(i < L-1){
-      printf("\n");
-    }
+    printf("\n");
     
-
-    // Free the allocated memory.
-    free(key_str);
-    free(block_str);
     free(sub_keys);
 
-    fflush(stdin);
-    fflush(stdout);
   }
 
   return 0;
